@@ -43,7 +43,7 @@ import (
 
 // RulesUnitTest does unit testing of rules based on the unit testing files provided.
 // More info about the file format can be found in the docs.
-func RulesUnitTest(queryOpts promqltest.LazyLoaderOpts, runStrings []string, diffFlag bool, files ...string) int {
+func RulesUnitTest(queryOpts promqltest.LazyLoaderOpts, runStrings []string, diffFlag bool,ignoreMissingFieldsFlag bool, files ...string) int {
 	failed := false
 
 	var run *regexp.Regexp
@@ -52,7 +52,7 @@ func RulesUnitTest(queryOpts promqltest.LazyLoaderOpts, runStrings []string, dif
 	}
 
 	for _, f := range files {
-		if errs := ruleUnitTest(f, queryOpts, run, diffFlag); errs != nil {
+		if errs := ruleUnitTest(f, queryOpts, run, diffFlag,ignoreMissingFieldsFlag); errs != nil {
 			fmt.Fprintln(os.Stderr, "  FAILED:")
 			for _, e := range errs {
 				fmt.Fprintln(os.Stderr, e.Error())
@@ -70,7 +70,7 @@ func RulesUnitTest(queryOpts promqltest.LazyLoaderOpts, runStrings []string, dif
 	return successExitCode
 }
 
-func ruleUnitTest(filename string, queryOpts promqltest.LazyLoaderOpts, run *regexp.Regexp, diffFlag bool) []error {
+func ruleUnitTest(filename string, queryOpts promqltest.LazyLoaderOpts, run *regexp.Regexp, diffFlag,ignoreMissingFieldsFlag bool) []error {
 	fmt.Println("Unit Testing: ", filename)
 
 	b, err := os.ReadFile(filename)
@@ -112,7 +112,7 @@ func ruleUnitTest(filename string, queryOpts promqltest.LazyLoaderOpts, run *reg
 		if t.Interval == 0 {
 			t.Interval = unitTestInp.EvaluationInterval
 		}
-		ers := t.test(evalInterval, groupOrderMap, queryOpts, diffFlag, unitTestInp.RuleFiles...)
+		ers := t.test(evalInterval, groupOrderMap, queryOpts, diffFlag,ignoreMissingFieldsFlag, unitTestInp.RuleFiles...)
 		if ers != nil {
 			errs = append(errs, ers...)
 		}
@@ -176,7 +176,7 @@ type testGroup struct {
 }
 
 // test performs the unit tests.
-func (tg *testGroup) test(evalInterval time.Duration, groupOrderMap map[string]int, queryOpts promqltest.LazyLoaderOpts, diffFlag bool, ruleFiles ...string) (outErr []error) {
+func (tg *testGroup) test(evalInterval time.Duration, groupOrderMap map[string]int, queryOpts promqltest.LazyLoaderOpts, diffFlag, ignoreMissingFieldsFlag bool, ruleFiles ...string) (outErr []error) {
 	// Setup testing suite.
 	suite, err := promqltest.NewLazyLoader(tg.seriesLoadingString(), queryOpts)
 	if err != nil {
@@ -382,10 +382,13 @@ func (tg *testGroup) test(evalInterval time.Duration, groupOrderMap map[string]i
 							continue
 						}
 
-						res, diff := jsondiff.Compare(expAlertsJSON, gotAlertsJSON, &diffOpts)
+						res, diff := jsondiff.Compare(gotAlertsJSON,expAlertsJSON,&diffOpts)
+						// NOTE: Here should be the place where something has to be changed
 						if res != jsondiff.FullMatch {
+							if (ignoreMissingFieldsFlag && res != jsondiff.SupersetMatch) {
 							errs = append(errs, fmt.Errorf("%s    alertname: %s, time: %s, \n        diff: %v",
 								testName, testcase.Alertname, testcase.EvalTime.String(), indentLines(diff, "            ")))
+							}
 						}
 					} else {
 						errs = append(errs, fmt.Errorf("%s    alertname: %s, time: %s, \n        exp:%v, \n        got:%v",

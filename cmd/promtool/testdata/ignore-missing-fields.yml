@@ -1,0 +1,20 @@
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+tests:
+  - input_series:
+      - series: 'up{job="prometheus", instance="localhost:9090"}'
+        values: "0+0x1440"
+
+    alert_rule_test:
+      # Test that only specified labels and alerts have to match
+      - eval_time: 1d
+        alertname: InstanceDown
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              # We don't assert on instance or job, although those labels are present in the alert
+            exp_annotations:
+              summary: "Instance localhost:9090 down"
+              # We don't assert on description, although this annotation is present in the alert

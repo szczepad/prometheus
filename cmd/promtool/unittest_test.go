@@ -23,7 +23,8 @@ import (
 
 func TestRulesUnitTest(t *testing.T) {
 	type args struct {
-		files []string
+		files               []string
+		ignoreMissingFields bool
 	}
 	tests := []struct {
 		name      string
@@ -124,10 +125,18 @@ func TestRulesUnitTest(t *testing.T) {
 			},
 			want: 0,
 		},
+		{
+			name: "Enabled argument (ignore missing fields)",
+			args: args{
+				files:               []string{"./testdata/ignore-missing-fields.yml"},
+				ignoreMissingFields: true,
+			},
+			want: 0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := RulesUnitTest(tt.queryOpts, nil, false, tt.args.files...); got != tt.want {
+			if got := RulesUnitTest(tt.queryOpts, nil, false,tt.args.ignoreMissingFields, tt.args.files...); got != tt.want {
 				t.Errorf("RulesUnitTest() = %v, want %v", got, tt.want)
 			}
 		})
@@ -180,7 +189,7 @@ func TestRulesUnitTestRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := RulesUnitTest(tt.queryOpts, tt.args.run, false, tt.args.files...)
+			got := RulesUnitTest(tt.queryOpts, tt.args.run, false,false, tt.args.files...)
 			require.Equal(t, tt.want, got)
 		})
 	}

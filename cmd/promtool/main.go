@@ -210,6 +210,7 @@ func main() {
 		"test-rule-file",
 		"The unit test file.",
 	).Required().ExistingFiles()
+	testIgnoreMissingFields := testRulesCmd.Flag("ignore-missing-fields","Allow tests to pass if labels or annotations are present which are not asserted").Default("false").Bool()
 	testRulesDiff := testRulesCmd.Flag("diff", "[Experimental] Print colored differential output between expected & received output.").Default("false").Bool()
 
 	defaultDBPath := "data/"
@@ -385,6 +386,7 @@ func main() {
 			},
 			*testRulesRun,
 			*testRulesDiff,
+			*testIgnoreMissingFields,
 			*testRulesFiles...),
 		)
 
